@@ -4,8 +4,6 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-//import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-//import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 interface ModelViewerProps {
   modelUrl: string;
@@ -15,17 +13,19 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('ModelViewer: Starting to load model from', modelUrl);
+    console.log('ModelViewer mounting with URL:', modelUrl);
     if (!containerRef.current) {
-      console.error('ModelViewer: Container ref not ready');
+      console.error('Container ref not ready');
       return;
     }
 
     const container = containerRef.current;
+    console.log('Container size:', container.clientWidth, container.clientHeight);
     
     // Set up scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x404040);
+    console.log('Scene created');
     
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -38,6 +38,7 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
       antialias: true,
       alpha: true
     });
+    console.log('Renderer created');
     
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -50,12 +51,14 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
     directionalLight.position.set(0.5, 1, -1.5);
     scene.add(directionalLight);
+    console.log('Lights added');
 
     // Add controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
     controls.enableZoom = true;
+    console.log('Controls created');
 
     // Set initial camera position
     camera.position.z = 5;
@@ -75,34 +78,23 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
       renderer.render(scene, camera);
     }
 
-    // Handle window resize
-    const handleResize = () => {
-      if (!container) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-
     // Start animation loop
     animate();
+    console.log('Animation loop started');
 
     // Load model
-    console.log('ModelViewer: Creating GLTFLoader');
+    console.log('Creating GLTFLoader for:', modelUrl);
     const loader = new GLTFLoader();
     
-    console.log('ModelViewer: Starting to load model:', modelUrl);
     loader.load(
       modelUrl,
       (gltf) => {
-        console.log('ModelViewer: Model loaded successfully', gltf);
-        
+        console.log('Model loaded successfully:', gltf);
         scene.add(gltf.scene);
 
         // Handle animations
         if (gltf.animations && gltf.animations.length) {
-          console.log('ModelViewer: Found animations:', gltf.animations.length);
+          console.log('Found animations:', gltf.animations.length);
           mixer = new THREE.AnimationMixer(gltf.scene);
           const action = mixer.clipAction(gltf.animations[0]);
           action.play();
@@ -119,20 +111,29 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
         controls.target.copy(center);
         controls.update();
 
-        console.log('ModelViewer: Camera positioned at z:', camera.position.z);
+        console.log('Camera positioned at z:', camera.position.z);
       },
       (progress) => {
         const percent = (progress.loaded / progress.total * 100);
-        console.log('ModelViewer: Loading progress:', percent.toFixed(2) + '%');
+        console.log('Loading progress:', percent.toFixed(2) + '%');
       },
       (error) => {
-        console.error('ModelViewer: Error loading model:', error);
+        console.error('Error loading model:', error);
       }
     );
 
+    // Handle window resize
+    const handleResize = () => {
+      if (!container) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    };
+    window.addEventListener('resize', handleResize);
+
     // Cleanup
     return () => {
-      console.log('ModelViewer: Cleaning up');
+      console.log('ModelViewer cleanup');
       window.removeEventListener('resize', handleResize);
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
@@ -152,6 +153,7 @@ const ModelViewer: React.FC<ModelViewerProps> = ({ modelUrl }) => {
     <div 
       ref={containerRef}
       className="w-full h-96 bg-gray-800 rounded-lg overflow-hidden"
+      style={{ minHeight: '400px' }}  // Added explicit minimum height
     />
   );
 };
